@@ -35,11 +35,22 @@ new_list_has_code_umls = []
 # Counts for get the quantity of INSERT, UPDATE and DELETE
 n_ins_code = 0
 n_ins_orphan=0
+n_ins_orphan_umls=0
 
 
 # Get the list of the diseases
 disease_list=get_list("select resource_id, disease_id, disease_name from disease")
-orphan_dic=get_orhpan_code.orphan_codes(orphan_dic={})
+
+# Get orphan Dic Mesh
+dic={}
+orphan_dic=get_orhpan_code.orphan_codes(dic,'MeSH')
+
+# Get the list of Phenotype_effect
+phenotype_effect = get_list("select distinct phenotype_id from phenotype_effect")
+phenotype_effect=list(*zip(*phenotype_effect))
+# Get orphan Dic UMLS
+dic2={}
+orphan_dic_UMLS=get_orhpan_code.orphan_codes(dic2,'UMLS')
 
 # Get the list of the ids which have already UMLS id
 has_code_table=get_list(" select id from has_code where resource_id = 121")
@@ -51,6 +62,10 @@ code_table=list(*zip(*code_table))
 code_table_orphan=get_list(" select code from code where resource_id = 99")
 code_table_orphan=list(*zip(*code_table_orphan))
 
+
+
+# id_resoruce_id ---> MESH
+ID_RESOURCE_ID = 75
 
 # Resource id
 UMLS_RESOURCE_ID = 121
@@ -84,7 +99,7 @@ for i in disease_list:
                     new_list_code_umls.append(umls_id)
                     new_list_has_code_umls.append(has_code_pk)
                     code_umls=(umls_id,UMLS_RESOURCE_ID,DISEASE_ENTITY_ID)
-                    has_code_umls=(disease_id,umls_id,UMLS_RESOURCE_ID,DISEASE_ENTITY_ID)
+                    has_code_umls=(ID_RESOURCE_ID,disease_id,umls_id,UMLS_RESOURCE_ID,DISEASE_ENTITY_ID)
                     code_umls_list.append(code_umls)
                     has_code_umls_list.append(has_code_umls)
                     count_umls+=1
@@ -92,14 +107,14 @@ for i in disease_list:
                 else:
                     if not has_code_pk in new_list_has_code_umls:
                         new_list_has_code_umls.append(has_code_pk)
-                        has_code_umls=(disease_id,umls_id,UMLS_RESOURCE_ID,DISEASE_ENTITY_ID)
+                        has_code_umls=(ID_RESOURCE_ID,disease_id,umls_id,UMLS_RESOURCE_ID,DISEASE_ENTITY_ID)
                         has_code_umls_list.append(has_code_umls)
                         count_umls+=1
                         n_ins_code += 1
             else:
                 if not has_code_pk in new_list_has_code_umls:
                     new_list_has_code_umls.append(has_code_pk)
-                    has_code_umls=(disease_id,umls_id,UMLS_RESOURCE_ID,DISEASE_ENTITY_ID)
+                    has_code_umls=(ID_RESOURCE_ID,disease_id,umls_id,UMLS_RESOURCE_ID,DISEASE_ENTITY_ID)
                     has_code_umls_list.append(has_code_umls)
                     count_umls+=1
                     n_ins_code += 1
@@ -114,33 +129,60 @@ for i in disease_list:
                 if not orphan_id in new_list_code_orphan:
                     new_list_code_orphan.append(orphan_id)
                     code_orphan=(orphan_id,ORPHAN_RESOURCE_ID,DISEASE_ENTITY_ID)
-                    has_code_orphan=(disease_id,orphan_id,ORPHAN_RESOURCE_ID,DISEASE_ENTITY_ID)
+                    has_code_orphan=(ID_RESOURCE_ID,disease_id,orphan_id,ORPHAN_RESOURCE_ID,DISEASE_ENTITY_ID)
                     code_orphan_list.append(code_orphan)
                     has_code_orphan_list.append(has_code_orphan)
                     count_orphanet+=1
                     n_ins_orphan +=1
+
+
         
         if count_umls==10:
             cursor.executemany("insert into code values(%s,%s,%s)",code_umls_list)
-            cursor.executemany("insert into has_code values(%s,%s,%s,%s)",has_code_umls_list)
+            cursor.executemany("insert into has_code values(%s,%s,%s,%s,%s)",has_code_umls_list)
             code_umls_list=[]
             has_code_umls_list=[]
             count_umls=0
 
         if count_orphanet==500:
             cursor.executemany("insert into code values(%s,%s,%s)",code_orphan_list)
-            cursor.executemany("insert into has_code values(%s,%s,%s,%s)",has_code_orphan_list)
+            cursor.executemany("insert into has_code values(%s,%s,%s,%s,%s)",has_code_orphan_list)
             code_orphan_list=[]
             has_code_orphan_list=[]
             count_orphanet=0
 
-
 cursor.executemany("insert into code values(%s,%s,%s)",code_umls_list)
-cursor.executemany("insert into has_code values(%s,%s,%s,%s)",has_code_umls_list)
+cursor.executemany("insert into has_code values(%s,%s,%s,%s,%s)",has_code_umls_list)
 cursor.executemany("insert into code values(%s,%s,%s)",code_orphan_list)
-cursor.executemany("insert into has_code values(%s,%s,%s,%s)",has_code_orphan_list)
-
+cursor.executemany("insert into has_code values(%s,%s,%s,%s,%s)",has_code_orphan_list)
 
 print("Number of Inserted in the code -UMLS- table: ", n_ins_code)
 print("Number of Inserted in the code -Orphan- table: ", n_ins_orphan)
+
+# This is for there are some phenotype id that has ORPHAN code
+code_table_orphan=get_list(" select code from code where resource_id = 99")
+code_table_orphan=list(*zip(*code_table_orphan))
+count_orphanet = 0
+for i in phenotype_effect:
+    if i in orphan_dic_UMLS:
+        orphan_id=orphan_dic_UMLS[i]
+        if orphan_id != None:
+         
+            if not orphan_id in code_table_orphan:
+                if not orphan_id in new_list_code_orphan:
+                    new_list_code_orphan.append(orphan_id)
+                    code_orphan=(orphan_id,ORPHAN_RESOURCE_ID,DISEASE_ENTITY_ID)
+                    ID_RESOURCE_ID_UMLS = 121
+                    has_code_orphan=(ID_RESOURCE_ID_UMLS,disease_id,orphan_id,ORPHAN_RESOURCE_ID,DISEASE_ENTITY_ID)
+                    code_orphan_list.append(code_orphan)
+                    has_code_orphan_list.append(has_code_orphan)
+                    count_orphanet+=1
+                    n_ins_orphan_umls +=1
+
+
+cursor.executemany("insert into code values(%s,%s,%s)",code_orphan_list)
+cursor.executemany("insert into has_code values(%s,%s,%s,%s,%s)",has_code_orphan_list)
+
+
+print("Number of Inserted in the code -Orphan- from phenotype table: ", n_ins_orphan_umls)
 

@@ -59,6 +59,8 @@ SOURCE = "CHEMBL"
 # Get the source_id of SOURCE from the table "source"
 source_id=int(get_list("SELECT source_id from source where name = '%s'" % SOURCE)[0][0])
 
+# id_resoruce_id ---> MESH
+ID_RESOURCE_ID = 75
 
 # Resource id
 UMLS_RESOURCE_ID = 121
@@ -106,7 +108,7 @@ for i in indications:
     if not mesh_umls_dic[indication_mesh] in code_table: 
         indication_umls=mesh_umls_dic[indication_mesh]
         code=(indication_umls,UMLS_RESOURCE_ID,DISEASE_ENTITY_ID)
-        has_code=(indication_mesh,indication_umls,UMLS_RESOURCE_ID,DISEASE_ENTITY_ID)
+        has_code=(ID_RESOURCE_ID,indication_mesh,indication_umls,UMLS_RESOURCE_ID,DISEASE_ENTITY_ID)
         code_list.append(code)
         has_code_list.append(has_code)
                
@@ -143,7 +145,7 @@ for i in indications:
 cursor.executemany("insert into phenotype_effect values(%s,%s,%s)",indication_list) 
 # Insert the UMLS code          
 cursor.executemany("insert into code values(%s,%s,%s)",code_list)
-cursor.executemany("insert into has_code values(%s,%s,%s,%s)",has_code_list)
+cursor.executemany("insert into has_code values(%s,%s,%s,%s,%s)",has_code_list)
 n_ins_code = len(code_list)
 
 # DELETE

@@ -1,22 +1,16 @@
-"""First time use.
+"""Updates.
 
-Create tables, insert some important data in the source, entity and code_reference tables
+Update all the tables.
 
-fill all the tables
+If there is important add new data in the source, entity and code_reference tables,
+Use the following statement
 
-In order to use these modules it requires to install the following libraries:
+cursor.execute("INSERT INTO source VALUES()")
 
-install requests
-instal chembl-webresource-client
-
-The Authentication module needs a APIKEY.
 """
 
 import conection_DISNET_drugslayer
 cursor = conection_DISNET_drugslayer.cursor
-
-# Create tables
-import table_creation 
 
 
 # Fill tables

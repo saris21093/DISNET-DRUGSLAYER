@@ -15,15 +15,15 @@ TABLES={}
 
 TABLES['code_reference'] = (""" CREATE TABLE code_reference (
         resource_id INT PRIMARY KEY,
-        resource_name VARCHAR(20))""")
+        resource_name VARCHAR(20) NOT NULL)""")
 
 TABLES['source']=("""CREATE TABLE source (
         source_id int PRIMARY KEY,
-        name VARCHAR(25))""")
+        name VARCHAR(25) NOT NULL)""")
 
 TABLES['drug']=("""CREATE TABLE drug (
     drug_id VARCHAR (25) PRIMARY KEY,
-    source_id int(11),
+    source_id int(11) NOT NULL,
     drug_name varchar(300),
     molecular_type varchar(50),
     chemical_structure varchar(5000),
@@ -38,7 +38,7 @@ TABLES['track_drug']=("""CREATE TABLE track_drug (
     snapshot_date DATE,
     drug_id VARCHAR(25),
     snapshot_action char(1) NOT NULL,
-    source_id int(11),
+    source_id int(11) NOT NULL,
     drug_name varchar(300),
     molecular_type varchar(50),
     chemical_structure varchar(5000),
@@ -62,7 +62,7 @@ TABLES["drug_BEFORE_DELETE"]=(""" CREATE TRIGGER drug_BEFORE_DELETE BEFORE DELET
 TABLES['ATC_code']=("""CREATE TABLE ATC_code (
     drug_id VARCHAR (25),
     ATC_code_id varchar(12),
-    source_id int(11),
+    source_id int(11) NOT NULL,
     PRIMARY KEY (drug_id, ATC_code_id),
         CONSTRAINT fk_ATCcode_drugid
         FOREIGN KEY(drug_id)
@@ -80,7 +80,7 @@ TABLES['track_ATC_code']=("""CREATE TABLE track_ATC_code (
     drug_id VARCHAR(25),
     ATC_code_id varchar(12),
     snapshot_action char(1) NOT NULL,
-    source_id int(11),
+    source_id int(11) NOT NULL,
     PRIMARY KEY (snapshot_date,drug_id,ATC_code_id,snapshot_action),
     KEY drugid_ATC_idx (drug_id,ATC_code_id))""")
 
@@ -176,7 +176,7 @@ TABLES["drug_phenotype_effect_BEFORE_DELETE"]=(""" CREATE TRIGGER drug_phenotype
 
 TABLES['target']=(""" CREATE TABLE target (
     target_id VARCHAR(100),
-    source_id int,
+    source_id int NOT NULL,
     target_name_pref VARCHAR(350),
     target_type VARCHAR(150),
     target_organism VARCHAR(300),
@@ -190,13 +190,13 @@ TABLES['target']=(""" CREATE TABLE target (
 
 TABLES['track_target']=("""CREATE TABLE track_target (
     snapshot_date DATE,
-    target_id VARCHAR(100),
+    target_id VARCHAR(100) ,
     snapshot_action char(1) NOT NULL,
     target_name_pref VARCHAR(150),
     target_type VARCHAR(350),
     target_organism VARCHAR(300),
     tax_id INT(11),
-    source_id int(11),
+    source_id int(11) NOT NULL,
     PRIMARY KEY (snapshot_date,target_id,snapshot_action),
     KEY targetid_idx (target_id))""")
 
@@ -215,7 +215,7 @@ TABLES["target_BEFORE_DELETE"]=(""" CREATE TRIGGER target_BEFORE_DELETE BEFORE D
 TABLES['drug_target']=(""" CREATE TABLE drug_target (
     target_id VARCHAR(100),
     drug_id VARCHAR (20),
-    source_id int,
+    source_id int NOT NULL,
     target_action_type VARCHAR (150),
     primary key(target_id,drug_id),
         CONSTRAINT fk_drugtarget_sourceid
@@ -240,7 +240,7 @@ TABLES['track_drug_target']=("""CREATE TABLE track_drug_target (
     drug_id VARCHAR (20),
     snapshot_action char(1) NOT NULL,
     target_action_type VARCHAR (150),
-    source_id int(11),
+    source_id int(11) NOT NULL,
     PRIMARY KEY (snapshot_date,target_id,drug_id,snapshot_action),
     KEY drugtarget_idx (target_id,drug_id))""")
 
@@ -257,9 +257,9 @@ TABLES["drug_target_BEFORE_DELETE"]=(""" CREATE TRIGGER drug_target_BEFORE_DELET
     VALUES (CURDATE(),OLD.target_id,OLD.drug_id,"D",OLD.target_action_type,OLD.source_id)""")
 
 TABLES['disease']=(""" CREATE TABLE disease (
-    resource_id int,
+    resource_id int NOT NULL,
     disease_id VARCHAR (25),
-    source_id int(11),
+    source_id int(11) NOT NULL,
     disease_name VARCHAR (500),
     primary key(disease_id),
         CONSTRAINT fk_disease_resourceid
@@ -277,26 +277,27 @@ TABLES['track_disease']=("""CREATE TABLE track_disease (
     snapshot_date DATE,
     disease_id VARCHAR(25),
     snapshot_action char(1) NOT NULL,
-    source_id int(11),
+    disease_name VARCHAR (500),
+    source_id int(11) NOT NULL,
     PRIMARY KEY (snapshot_date,disease_id,snapshot_action),
     KEY disease_idx (disease_id))""")
 
 TABLES["disease_BEFORE_INSERT"]=(""" CREATE TRIGGER disease_BEFORE_INSERT BEFORE INSERT ON disease FOR EACH ROW
-    INSERT INTO track_disease (snapshot_date,disease_id,snapshot_action,source_id) 
-    VALUES (CURDATE(),NEW.disease_id,"I",NEW.source_id)""")
+    INSERT INTO track_disease (snapshot_date,disease_id,snapshot_action,disease_name,source_id) 
+    VALUES (CURDATE(),NEW.disease_id,"I",NEW.disease_name,NEW.source_id)""")
 
 TABLES["disease_BEFORE_UPDATE"]=(""" CREATE TRIGGER disease_BEFORE_UPDATE BEFORE UPDATE ON disease FOR EACH ROW
-    INSERT INTO track_drug_target (snapshot_date,disease_id,snapshot_action,source_id) 
-    VALUES (CURDATE(),NEW.disease_id,"U",NEW.source_id)""")
+    INSERT INTO track_drug_target (snapshot_date,disease_id,snapshot_action,disease_name,source_id) 
+    VALUES (CURDATE(),NEW.disease_id,"U",NEW.disease_name,NEW.source_id)""")
 
 TABLES["disease_BEFORE_DELETE"]=(""" CREATE TRIGGER disease_BEFORE_DELETE BEFORE DELETE ON disease FOR EACH ROW
-    INSERT INTO track_disease (snapshot_date,disease_id,snapshot_action,source_id) 
-    VALUES (CURDATE(),OLD.disease_id,"D",OLD.source_id)""")
+    INSERT INTO track_disease (snapshot_date,disease_id,snapshot_action,disease_name,source_id) 
+    VALUES (CURDATE(),OLD.disease_id,"D",OLD.disease_name,OLD.source_id)""")
 
 TABLES['drug_disease']=(""" CREATE TABLE drug_disease (
     disease_id varchar(25),
     drug_id varchar (20),
-    source_id int ,
+    source_id int NOT NULL ,
     disease_references float,
     primary key(disease_id,drug_id),
         CONSTRAINT fk_drugdisease_sourceid
@@ -321,7 +322,7 @@ TABLES['track_drug_disease']=("""CREATE TABLE track_drug_disease (
     drug_id VARCHAR (20),
     snapshot_action char(1) NOT NULL,
     disease_references float,
-    source_id int(11),
+    source_id int(11) NOT NULL,
     PRIMARY KEY (snapshot_date,disease_id,drug_id,snapshot_action),
     KEY disease_id_idx (disease_id,drug_id))""")
 
@@ -339,8 +340,8 @@ TABLES["drug_disease_BEFORE_DELETE"]=(""" CREATE TRIGGER drug_disease_BEFORE_DEL
 
 TABLES['synonymous']=(""" CREATE TABLE synonymous (
     drug_id VARCHAR(20),
-    source_id int (11),
-    synonymous_name VARCHAR(150),
+    source_id int (11) NOT NULL,
+    synonymous_name VARCHAR(150) NOT NULL,
         CONSTRAINT fk_synonymous_sourceid
         FOREIGN KEY(source_id)
         REFERENCES source(source_id)
@@ -354,12 +355,12 @@ TABLES['synonymous']=(""" CREATE TABLE synonymous (
 
 TABLES['entity'] = (""" CREATE TABLE entity (
         entity_id INT PRIMARY KEY ,
-        entity_name VARCHAR(20))""")
+        entity_name VARCHAR(20) NOT NULL)""")
 
 TABLES['code']=(""" CREATE TABLE code (
     code VARCHAR(25) primary key,
-    resource_id INT,
-    entity_id INT,
+    resource_id INT NOT NULL,
+    entity_id INT NOT NULL,
     CONSTRAINT fk_code_resourceid
     FOREIGN KEY (resource_id)
     REFERENCES code_reference(resource_id)
@@ -372,10 +373,11 @@ TABLES['code']=(""" CREATE TABLE code (
         ON UPDATE CASCADE) """)
 
 TABLES['has_code']=(""" CREATE TABLE has_code (
-    id VARCHAR(25),
-    code VARCHAR(25),
-    resource_id INT,
-    entity_id INT,
+    id_resource_id INT(11) NOT NULL,
+    id VARCHAR(25) NOT NULL,
+    code VARCHAR(25) NOT NULL,
+    resource_id INT NOT NULL,
+    entity_id INT NOT NULL,
     CONSTRAINT fk_hascode_resourceid
     FOREIGN KEY (resource_id)
     REFERENCES code_reference(resource_id)
@@ -390,7 +392,12 @@ TABLES['has_code']=(""" CREATE TABLE has_code (
             FOREIGN KEY (code)
             REFERENCES code(code)
             ON DELETE CASCADE
-            ON UPDATE CASCADE) """)
+            ON UPDATE CASCADE,
+                CONSTRAINT fk_hascode_idresourceid
+                FOREIGN KEY (id_resource_id)
+                REFERENCES code_reference(resource_id)
+                ON DELETE CASCADE
+                ON UPDATE CASCADE) """)
 
 
 # CREATE TABLES
@@ -415,7 +422,7 @@ sources_list=[(1,"CHEMBL"),(2,"SIDER"),(3,"CTD")]
 entities_list = [(1,"DISEASE"),(2,"DRUG"),(3,"TARGET")]
 
 # LIST OF REFERENCES
-references_list=[(75,"MESH"),(95,"DRUGBANK"),(99,"ORPHAN"),(121,"UMLS"),(86,"UNIPROT"),(72,"OMIM")]
+references_list=[(75,"MESH"),(95,"DRUGBANK"),(99,"ORPHAN"),(121,"UMLS"),(86,"UNIPROT"),(72,"OMIM"), (97,'CHEMBL')]
 
 #FILL ENTITY, SOURCE AND CODE_REFERENCE TABLES
 cursor.executemany("INSERT INTO source VALUES (%s,%s)" ,sources_list)

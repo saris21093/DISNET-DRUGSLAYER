@@ -42,9 +42,21 @@ url_side_effects = 'http://sideeffects.embl.de/media/download/meddra_freq.tsv.gz
 file_name_side_effects='meddra_freq.tsv.gz'
 
 def download_file(url,file_name):
-    """ This is a fuction to download the data, the params are the url of the file and the name. """
+    """This Function make the request to the link where the files are,
+    and keep the information in a new file.
+
+    Args:
+        url (str): url where the file are.
+        file_name (str): the name of the new file.
+
+    Returns:
+        The files downloaded.
+    """
     myfile = requests.get(url)
-    open(file_name, 'wb').write(myfile.content)
+    if myfile.status_code == 200:
+        open(file_name, 'wb').write(myfile.content)
+    else:
+        print('The link does not work')
 
 # Download the file drug_atc and meddra_freq file, this file contains the drugs and their side effects
 download_file(url_drug_atc,file_name_drug_atc)
@@ -52,7 +64,16 @@ download_file(url_side_effects,file_name_side_effects)
 
 # Create a diccionary in order to keep the information, ATC codes as a key, and the STITCH as values.
 def atc_stitch_codes(file_atc):
-    """ This function takes the drug_atc file in order to create a diccionary in order to keep the information, ATC codes as a key, and the STITCH as values."""
+    """ This function takes the drug_atc file in order to create a diccionary
+     in order to keep the information, ATC codes as a key, and the STITCH as values.
+     
+    Args:
+        file_atc (str): The name of the file where the information about atc codes is.
+
+    Returns:
+        atc_stitch (dic): A diccionary with the cross-reference between atc and stitch
+
+     """
     atc_stitch={}
     with open(file_atc) as tsvfile:
         atc_codes = csv.reader(tsvfile, delimiter="\t")

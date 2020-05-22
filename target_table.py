@@ -61,6 +61,9 @@ SOURCE = "CHEMBL"
 # Get the source_id of SOURCE from the table "source"
 source_id = int(get_list("SELECT source_id from source where name = '%s'" % SOURCE)[0][0])
 
+# id_resource_id --> CHEMBL
+ID_RESOURCE_ID = 97
+
 # Resource id
 # UP --> UniProt
 UP_RESOURCEID = 86
@@ -129,7 +132,7 @@ for i in drug_target_chembl:
             if not accession in new_code_list:
                 new_code_list.append(accession)
                 code_accession=(accession,UP_RESOURCEID,TARGET_ENTITYID)
-                has_code=(target_id,accession,UP_RESOURCEID,TARGET_ENTITYID)
+                has_code=(ID_RESOURCE_ID,target_id,accession,UP_RESOURCEID,TARGET_ENTITYID)
                 code_list.append(code_accession)
                 has_code_list.append(has_code)
                 count_code+=1
@@ -138,7 +141,7 @@ for i in drug_target_chembl:
         # Insert the Data each 500 rows in each list
         if count_code==500:
             cursor.executemany("insert into code values(%s,%s,%s)",code_list)
-            cursor.executemany("insert into has_code values(%s,%s,%s,%s)",has_code_list)
+            cursor.executemany("insert into has_code values(%s,%s,%s,%s,%s)",has_code_list)
             code_list=[]
             has_code_list=[]
             count_code=0
@@ -147,7 +150,7 @@ for i in drug_target_chembl:
 # Insert the remaining data in the lists
 cursor.executemany("insert into target values(%s,%s,%s,%s,%s,%s)",target_list)
 cursor.executemany("insert into code values(%s,%s,%s)",code_list)
-cursor.executemany("insert into has_code values(%s,%s,%s,%s)",has_code_list)
+cursor.executemany("insert into has_code values(%s,%s,%s,%s,%s)",has_code_list)
 
 # DELETE:
 # primary key that is in the previous version of the table and not in the new one -intersection list-

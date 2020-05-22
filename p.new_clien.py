@@ -55,3 +55,17 @@ def orphan_codes(orphan_dic,source):
                         reference=(links['Reference'])
                         orphan_dic[reference]=[orphan_number][0]
     return orphan_dic
+
+phenotype_effect = get_list("select distinct phenotype_id from phenotype_effect")
+phenotype_effect=list(*zip(*phenotype_effect))
+orphan_dic = orphan_codes(orphan_dic = {})
+
+news=[]
+for i in phenotype_effect:
+    if i in orphan_dic.keys():
+        a=(i,orphan_dic[i])
+        news.append(a)
+print(news)
+print(len(news))
+
+

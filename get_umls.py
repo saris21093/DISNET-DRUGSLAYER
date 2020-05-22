@@ -15,9 +15,9 @@ import requests
 import json
 import re
 from difflib import SequenceMatcher
-import variables
 
-#apikey = variables.apikey
+
+
 apikey = "836ab0e6-945c-4750-8259-0f4cb9c7d6df"
 version = "current"
 AuthClient = Authentication(apikey)
@@ -29,12 +29,33 @@ AuthClient = Authentication(apikey)
 tgt = AuthClient.gettgt()
 uri = "https://uts-ws.nlm.nih.gov"
 
-def get_umls(identifier,mesh_name,source):
-    """ The parameter of this function are the MeSH id, the MeSH name and the source"""
+def get_umls(identifier,disorder_name,source):
+    """ The parameter of this function are the MeSH id, the MeSH name and the source.
+
+    Args:
+        identifier (str): The identifier of the disorder.
+        disorder_name (str): The name of the disorder.
+        source (str): The name of the source that the identifier is, this name has to be in the way that are in UMLS.
+    
+    Returns:
+        UMLS (str): The UMLS code
+    """
 
     def similar(a, b):
-        """ This function is for getting a percentage of similarity between the names of the diseases"""
-        return SequenceMatcher(None, a, b).ratio()
+        """ This function is for getting a percentage of similarity between the names of the diseases.
+
+        Args:
+            a (str): Name of the disorder.
+            b (str): Name of the disorder.
+
+        Returns:
+            Percentage (float): The percentage of similitud between two strings. 
+
+        
+        """
+        
+        percentage = SequenceMatcher(None, a, b).ratio()
+        return percentage
 
     content_endpoint = "/rest/content/"+str(version)+"/source/"+str(source)+"/"+str(identifier)+"/atoms"
     ##ticket is the only parameter needed for this call - paging does not come into play because we're only asking for one Json object
@@ -49,7 +70,7 @@ def get_umls(identifier,mesh_name,source):
         if len(jsonData) >2:
             for i in range(len(jsonData)):
                 name = jsonData[i]["name"]
-                similarity_percentage=similar(name,mesh_name)
+                similarity_percentage=similar(name,disorder_name)
                 similarities.append(similarity_percentage)
             location=similarities.index(max(similarities))
             concept = jsonData[location]["concept"]
@@ -61,7 +82,7 @@ def get_umls(identifier,mesh_name,source):
             umls = re.split('CUI/',concept)
             return umls[1]
     else:
-        string=mesh_name
+        string=disorder_name
         content_endpoint_string = "/rest/search/"+version
         query = {'string':string,'ticket':AuthClient.getst(tgt)}
         r_string = requests.get(uri+content_endpoint_string,params=query)
@@ -72,7 +93,7 @@ def get_umls(identifier,mesh_name,source):
         if len(jsonData_string) >1:
             for i in range(len(jsonData_string)):
                 name_string = jsonData_string[i]["name"]
-                similarity_percentage_string=similar(name_string,mesh_name)
+                similarity_percentage_string=similar(name_string,disorder_name)
                 similarities_string.append(similarity_percentage_string)
             location_string=similarities_string.index(max(similarities_string))
             umls = jsonData_string[location_string]["ui"]

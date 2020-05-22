@@ -78,6 +78,8 @@ n_same_drug = 0
 n_same_atc = 0
 n_same_synonymous = 0
 
+# id_resource_id --> CHEMBL
+ID_RESOURCE_ID = 97
 # Resource id
 # DB --> DrugBank
 DB_RESOURCEID = 95
@@ -136,7 +138,7 @@ for i in approved_drugs:
             n_ins_drug+=1
 
         # For each new drug id get the DrugBank id
-        if not (drug_id,DRUGBANK_RESOURCE_ID,DRUG_ENTITY_ID) in new_code_list:  
+        if not (drug_id,DB_RESOURCEID,DRUG_ENTITYID) in new_code_list:  
             # Get the DrugBank code
             from chembl_webresource_client.unichem import unichem_client as unichem
             response=unichem.get(drug_id,1,2) #1 --> CHEMBL, 2 --> DrugBank
@@ -144,7 +146,7 @@ for i in approved_drugs:
             if response:
                 db_code = response[0]['src_compound_id']
                 code=(db_code,DB_RESOURCEID,DRUG_ENTITYID)
-                has_code=(drug_id,db_code,DB_RESOURCEID,DRUG_ENTITYID)
+                has_code=(ID_RESOURCE_ID ,drug_id,db_code,DB_RESOURCEID,DRUG_ENTITYID)
                 chembl_cr=(drug_id,DB_RESOURCEID,DRUG_ENTITYID)
                 new_code_list.append(chembl_cr)
                 code_list.append(code)
@@ -198,7 +200,7 @@ for i in approved_drugs:
         count_drug=0
     if count_code==500:
         cursor.executemany("insert into code values(%s,%s,%s)",code_list)
-        cursor.executemany("insert into has_code values(%s,%s,%s,%s)",has_code_list)
+        cursor.executemany("insert into has_code values(%s,%s,%s,%s,%s)",has_code_list)
         code_list=[]
         has_code_list=[]
         count_code=0
@@ -216,7 +218,7 @@ for i in approved_drugs:
 cursor.executemany("insert into drug values(%s,%s,%s,%s,%s,%s)",drug_list)
 cursor.executemany("insert into ATC_code values(%s,%s,%s)",ATC_code_list)
 cursor.executemany("insert into code values(%s,%s,%s)",code_list)
-cursor.executemany("insert into has_code values(%s,%s,%s,%s)",has_code_list)
+cursor.executemany("insert into has_code values(%s,%s,%s,%s,%s)",has_code_list)
 cursor.executemany("insert into synonymous values(%s,%s,%s)",synonymous_list)
 
 # DELETE:

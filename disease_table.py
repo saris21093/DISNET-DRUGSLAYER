@@ -31,8 +31,21 @@ url_chemical="http://ctdbase.org/reports/CTD_chemicals.tsv.gz"
 file_name_chemical="CTD_chemicals.tsv.gz"
 
 def request_url(url,file_name):
+    """This Function make the request to the link where the files are,
+    and keep the information in a new file.
+
+    Args:
+        url (str): url where the file are.
+        file_name (str): the name of the new file.
+
+    Returns:
+        The files downloaded.
+    """
     myfile = requests.get(url)
-    open(file_name, 'wb').write(myfile.content)
+    if myfile.status_code == 200:
+        open(file_name, 'wb').write(myfile.content)
+    else:
+        print('The link does not work')
 
 # Download the file CTD_chemicals_diseases and CTD_chemicals file, this file contains the drugs and the related diseases 
 request_url(url_chemical_diseases,file_name_chemical_diseases)
