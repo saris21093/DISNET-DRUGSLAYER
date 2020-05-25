@@ -48,6 +48,7 @@ orphan_dic=get_orhpan_code.orphan_codes(dic,'MeSH')
 # Get the list of Phenotype_effect
 phenotype_effect = get_list("select distinct phenotype_id from phenotype_effect")
 phenotype_effect=list(*zip(*phenotype_effect))
+
 # Get orphan Dic UMLS
 dic2={}
 orphan_dic_UMLS=get_orhpan_code.orphan_codes(dic2,'UMLS')
