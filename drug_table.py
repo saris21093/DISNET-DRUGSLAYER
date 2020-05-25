@@ -17,23 +17,23 @@ from get_list import get_list
 
 cursor = conection_DISNET_drugslayer.cursor
 
-# Get drug table
-drug_table = get_list("select * from drug")
+# Get Previous Version of drug table
+PV_drug_table = get_list("select * from drug")
 
 # get column length
-column_length=len(drug_table[0])
+column_length=len(PV_drug_table[0])
 
-# Get the primary keys (pk) from drug table 
-drug_pk_table = get_list("select drug_id from drug")
-drug_pk_table=list(*zip(*drug_pk_table))
+# Get the primary keys (PK) from Previous Version of drug table 
+PV_PK_drug_table = get_list("select drug_id from drug")
+PV_PK_drug_table=list(*zip(*PV_PK_drug_table))
 
-# Get ATC_code table
-ATC_table = get_list("select * from ATC_code")
+# Get Previous Version of ATC_code table
+PV_ATC_table = get_list("select * from ATC_code")
 
-# Get synonymous table
-synonymous_table = get_list("select * from synonymous")
+# Get Previous Version of synonymous table
+PV_synonymous_table = get_list("select * from synonymous")
 
-# Get columns names
+# Get columns names of drug's table
 columns_names = get_list("""SELECT COLUMN_NAME FROM information_schema.COLUMNS 
                         WHERE TABLE_SCHEMA LIKE 'disnet_drugslayer' AND TABLE_NAME = 'drug' """)
 
@@ -52,18 +52,18 @@ count_ATC=0
 count_code=0
 count_synonymous=0
 
-# These Lists are going to keep the pk of the data that will be inserted
-drug_list=[]
-ATC_code_list=[]
-code_list=[]
-has_code_list=[]
-synonymous_list=[]
+# These Lists are going to keep tuples with the NEW complete data which will be inserted in the tables
+NEW_complete_drug_list=[]
+NEW_complete_ATC_code_list=[]
+NEW_complete_code_list=[]
+NEW_complete_has_code_list=[]
+NEW_complete_synonymous_list=[]
 
-# These Lists are going to keep tuples with the data which will be inserted in the tables
-new_drug_list=[]
-new_ATC_code_list=[]
-new_code_list=[]
-new_synonymous_list=[]
+# These Lists are going to keep the NEW pk of the data that will be inserted
+NEW_drug_list=[]
+NEW_ATC_code_list=[]
+NEW_code_list=[]
+NEW_synonymous_list=[]
 
 # Counts for get the quantity of INSERT, UPDATE and DELETE
 n_ins_drug = 0
@@ -111,7 +111,7 @@ for i in approved_drugs:
         smiles = i['molecule_structures']['canonical_smiles']
         inchi_key = i['molecule_structures']['standard_inchi_key']
     else:
-        if not drug_id in new_drug_list:
+        if not drug_id in NEW_drug_list:
             smiles = None
             inchi_key = None      
 
@@ -130,15 +130,15 @@ for i in approved_drugs:
     # If all the data is the same it is repeat data
     # If the data is different is an update
 
-    if not drug_id in drug_pk_table: 
-        if not drug_id in new_drug_list: 
-            new_drug_list.append(drug_id) 
-            drug_list.append(drug) # Provisional list with the new complete data
+    if not drug_id in PV_PK_drug_table: 
+        if not drug_id in NEW_drug_list: 
+            NEW_drug_list.append(drug_id) 
+            NEW_complete_drug_list.append(drug) # Provisional list with the new complete data
             count_drug+=1
             n_ins_drug+=1
 
         # For each new drug id get the DrugBank id
-        if not (drug_id,DB_RESOURCEID,DRUG_ENTITYID) in new_code_list:  
+        if not (drug_id,DB_RESOURCEID,DRUG_ENTITYID) in NEW_code_list:  
             # Get the DrugBank code
             from chembl_webresource_client.unichem import unichem_client as unichem
             response=unichem.get(drug_id,1,2) #1 --> CHEMBL, 2 --> DrugBank
@@ -148,9 +148,9 @@ for i in approved_drugs:
                 code=(db_code,DB_RESOURCEID,DRUG_ENTITYID)
                 has_code=(ID_RESOURCE_ID ,drug_id,db_code,DB_RESOURCEID,DRUG_ENTITYID)
                 chembl_cr=(drug_id,DB_RESOURCEID,DRUG_ENTITYID)
-                new_code_list.append(chembl_cr)
-                code_list.append(code)
-                has_code_list.append(has_code)
+                NEW_code_list.append(chembl_cr)
+                NEW_complete_code_list.append(code)
+                NEW_complete_has_code_list.append(has_code)
                 count_code+=1 
                 n_ins_code+=1  
 
@@ -158,10 +158,10 @@ for i in approved_drugs:
     if 'atc_classifications'in i:
         for j in i['atc_classifications']:
             ATC_code=(drug_id,j,source_id)
-            if not ATC_code in ATC_table:
-                if not ATC_code in new_ATC_code_list: 
-                    new_ATC_code_list.append(ATC_code) 
-                    ATC_code_list.append(ATC_code) 
+            if not ATC_code in PV_ATC_table:
+                if not ATC_code in NEW_ATC_code_list: 
+                    NEW_ATC_code_list.append(ATC_code) 
+                    NEW_complete_ATC_code_list.append(ATC_code) 
                     count_ATC+=1
                     n_ins_atc+=1
             else:
@@ -170,10 +170,10 @@ for i in approved_drugs:
     # Get the synonym name of each drug    
     for j in synonym:
         synonymous=(drug_id,source_id,j['molecule_synonym'])
-        if not synonymous in synonymous_table: 
-            if not synonymous in new_synonymous_list: 
-                new_synonymous_list.append(synonymous) 
-                synonymous_list.append(synonymous) 
+        if not synonymous in PV_synonymous_table: 
+            if not synonymous in NEW_synonymous_list: 
+                NEW_synonymous_list.append(synonymous) 
+                NEW_complete_synonymous_list.append(synonymous) 
                 count_synonymous+=1
                 n_ins_synonymous += 1
         else:
@@ -183,7 +183,7 @@ for i in approved_drugs:
     else:
         intersection_drugs.append(drug_id) # Add the pk that is in the previous and the actual version 
         n_same_drug += 1
-        for row in drug_table: 
+        for row in PV_drug_table: 
             PV_drug_id = row[0] 
             if drug_id == row: 
                 for column in range(1,column_length): # to loop all -not pk- the columns of the drug's table
@@ -195,48 +195,48 @@ for i in approved_drugs:
                   
     # Insert the Data each 500 rows in each list
     if count_drug==500:
-        cursor.executemany("insert into drug values(%s,%s,%s,%s,%s,%s)",drug_list)
-        drug_list=[]
+        cursor.executemany("insert into drug values(%s,%s,%s,%s,%s,%s)",NEW_complete_drug_list)
+        NEW_complete_drug_list=[]
         count_drug=0
     if count_code==500:
-        cursor.executemany("insert into code values(%s,%s,%s)",code_list)
-        cursor.executemany("insert into has_code values(%s,%s,%s,%s,%s)",has_code_list)
-        code_list=[]
-        has_code_list=[]
+        cursor.executemany("insert into code values(%s,%s,%s)",NEW_complete_code_list)
+        cursor.executemany("insert into has_code values(%s,%s,%s,%s,%s)",NEW_complete_has_code_list)
+        NEW_complete_code_list=[]
+        NEW_complete_has_code_list=[]
         count_code=0
     if count_ATC == 500:
-        cursor.executemany("insert into ATC_code values(%s,%s,%s)",ATC_code_list)
-        ATC_code_list=[]
+        cursor.executemany("insert into ATC_code values(%s,%s,%s)",NEW_complete_ATC_code_list)
+        NEW_complete_ATC_code_list=[]
         count_ATC=0
     if count_synonymous==500:
-        cursor.executemany("insert into synonymous values(%s,%s,%s)",synonymous_list)
-        synonymous_list=[]
+        cursor.executemany("insert into synonymous values(%s,%s,%s)",NEW_complete_synonymous_list)
+        NEW_complete_synonymous_list=[]
         count_synonymous=0
 
 
 # Insert the remaining data in the lists
-cursor.executemany("insert into drug values(%s,%s,%s,%s,%s,%s)",drug_list)
-cursor.executemany("insert into ATC_code values(%s,%s,%s)",ATC_code_list)
-cursor.executemany("insert into code values(%s,%s,%s)",code_list)
-cursor.executemany("insert into has_code values(%s,%s,%s,%s,%s)",has_code_list)
-cursor.executemany("insert into synonymous values(%s,%s,%s)",synonymous_list)
+cursor.executemany("insert into drug values(%s,%s,%s,%s,%s,%s)",NEW_complete_drug_list)
+cursor.executemany("insert into ATC_code values(%s,%s,%s)",NEW_complete_ATC_code_list)
+cursor.executemany("insert into code values(%s,%s,%s)",NEW_complete_code_list)
+cursor.executemany("insert into has_code values(%s,%s,%s,%s,%s)",NEW_complete_has_code_list)
+cursor.executemany("insert into synonymous values(%s,%s,%s)",NEW_complete_synonymous_list)
 
 # DELETE:
 # primary key that is in the previous version of the table and not in the new one -intersection list-
 
 
-for PV_drug_id in drug_pk_table: # Loop the pk of the drug's table
+for PV_drug_id in PV_PK_drug_table: # Loop the pk of the drug's table
     if not PV_drug_id in intersection_drugs: # The PK of the Previous version of the table is not in the intersection_drugs list ?
         cursor.execute("DELETE FROM drug WHERE drug_id = '%s'" % PV_drug_id)
         n_del_drug += 1
 
-for row in ATC_table: # Loop the pk of the ATC_code's table
+for row in PV_ATC_table: # Loop the pk of the ATC_code's table
     PV_ATC_pk =(row[0],row[1],source_id) # The PK of the Previous version of the table is not in the intersection_drugs list ?
     if not PV_ATC_pk in intersection_ATC_code:
         cursor.execute("DELETE FROM  ATC_code WHERE drug_id = '%s'  and source_id = '%s' and ATC_code_id = '%s'" % PV_ATC_pk)
         n_del_atc+=1
 
-for row in synonymous_table: # Loop the pk of the synonymous's table
+for row in PV_synonymous_table: # Loop the pk of the synonymous's table
     PV_synonymous_pk =(row[0],source_id,row[2]) # The PK of the Previous version of the table is not in the intersection_drugs list ?
     if not PV_synonymous_pk in intersection_synonymous:
         cursor.execute("DELETE FROM synonymous WHERE drug_id = '%s' and source_id = '%s' and synonymous_name = '%s'" % PV_synonymous_pk)

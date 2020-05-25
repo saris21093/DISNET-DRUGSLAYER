@@ -22,16 +22,16 @@ from get_list import get_list
 cursor = conection_DISNET_drugslayer.cursor
 
 
-# Get tables phenotype_effect and drug_phenotype_effect
+# Get Previos Version of tables phenotype_effect and drug_phenotype_effect where source_id = 2
 # pe --> phenotype effect
 
-pe_table = get_list("select * from phenotype_effect where source_id = 2")
-drug_pe_table = get_list("select * from drug_phenotype_effect where source_id =2")
+PV_pe_table = get_list("select * from phenotype_effect where source_id = 2")
+PV_drug_pe_table = get_list("select * from drug_phenotype_effect where source_id =2")
 
-# Get the primary keys (pk) of phenotype effect and drug- phenotype effect tables 
+# Get the primary keys (pk) of phenotype effect and drug- phenotype effect Previous Version tables 
 
-pe_pk_table = get_list("select phenotype_id, source_id from phenotype_effect where source_id = 2")
-drug_pe_pk_table = get_list("select phenotype_id, drug_id, source_id from drug_phenotype_effect where source_id = 2")
+PV_PK_pe_table = get_list("select phenotype_id, source_id from phenotype_effect where source_id = 2")
+PV_PK_drug_pe_table = get_list("select phenotype_id, drug_id, source_id from drug_phenotype_effect where source_id = 2")
 
 
 # links where the data are, and their names
@@ -101,12 +101,12 @@ for i in ATC_code_table:
 # se --> side effect
 
 # These Lists are going to keep the pk of the data that will be inserted
-se_list=[]
-drug_se_list=[]
+NEW_se_list=[]
+NEW_drug_se_list=[]
 
 # These Lists are going to keep tuples with the data which will be inserted in the tables
-new_se=[]
-new_drug_se=[]   
+NEW_complete_se=[]
+NEW_complete_drug_se=[]   
 
 # These variables will keep the intersection between old data and new data
 intersection_se=[]
@@ -159,15 +159,15 @@ with gzip.open(file_name_side_effects,'rb') as f:
                 # If all the data is the same it is repeat data
                 # If the data is different is an update
 
-                if not se_pk in pe_pk_table:
-                    if not se_pk in se_list:
-                        se_list.append(se_pk)
-                        new_se.append(se) 
+                if not se_pk in PV_PK_pe_table:
+                    if not se_pk in NEW_se_list:
+                        NEW_se_list.append(se_pk)
+                        NEW_complete_se.append(se) 
                 else:
                     if not se_pk in intersection_se:
                         intersection_se.append(se_pk) # Add the pk that is in the previous and the actual version
                         n_same_se+=1
-                    for row in pe_table:
+                    for row in PV_pe_table:
                         PV_se_id = row[0]
                         PV_se_sourceid = row[1]
                         PV_se_name = row[2]
@@ -194,25 +194,25 @@ with gzip.open(file_name_side_effects,'rb') as f:
                 # If the data is different is an update
               
                         
-                if not drug_se_pk in drug_pe_pk_table:
-                    if not drug_se_pk in drug_se_list:
-                        drug_se_list.append(drug_se_pk)
-                        new_drug_se.append(drug_se)
+                if not drug_se_pk in PV_PK_drug_pe_table:
+                    if not drug_se_pk in NEW_drug_se_list:
+                        NEW_drug_se_list.append(drug_se_pk)
+                        NEW_complete_drug_se.append(drug_se)
                         
-                    if drug_se_pk in drug_se_list:
-                        index=drug_se_list.index(drug_se_pk)
-                        if new_drug_se[index][3] < frec_se:
-                            new_drug_se.pop(index)
-                            drug_se_list.pop(index)  
+                    if drug_se_pk in NEW_drug_se_list:
+                        index=NEW_drug_se_list.index(drug_se_pk)
+                        if NEW_complete_drug_se[index][3] < frec_se:
+                            NEW_complete_drug_se.pop(index)
+                            NEW_drug_se_list.pop(index)  
                             drug_se=(se_id,drug_id,source_id,frec_se,phenotype_type)
-                            new_drug_se.append(drug_se)
-                            drug_se_list.append(drug_se_pk)
+                            NEW_complete_drug_se.append(drug_se)
+                            NEW_drug_se_list.append(drug_se_pk)
                     
                 else:
                     if not drug_se_pk in intersection_drug_se:
                         intersection_drug_se.append(drug_se_pk) # Add the pk that is in the previous and the actual version
                         n_same_drug_se+=1
-                    for row in drug_pe_table:
+                    for row in PV_drug_pe_table:
                         PV_drug_se_phenotypeid = row[0]
                         PV_drug_se_drug_id = row[1]
                         PV_frec = row[3]
@@ -223,22 +223,20 @@ with gzip.open(file_name_side_effects,'rb') as f:
                                 cursor.execute("UPDATE drug_phenotype_effect SET score = '%s' where (phenotype_id = '%s') and (drug_id = '%s') and (phenotype_type = '%s')" % dse_update_values)
                                 n_upd_drug_se +=1
 # INSERT the data to the database
-if new_se:
-    cursor.executemany("insert into phenotype_effect values(%s,%s,%s)",new_se)
-if new_drug_se:
-    cursor.executemany("insert into drug_phenotype_effect values(%s,%s,%s,%s,%s)",new_drug_se)
-n_ins_se = len(new_se)
-n_ins_drug_se=len(new_drug_se)
+cursor.executemany("insert into phenotype_effect values(%s,%s,%s)",NEW_complete_se)
+cursor.executemany("insert into drug_phenotype_effect values(%s,%s,%s,%s,%s)",NEW_complete_drug_se)
+n_ins_se = len(NEW_complete_se)
+n_ins_drug_se=len(NEW_complete_drug_se)
 
 # DELETE
 # primary key that is in the previous version of the table and not in the new one -intersection list-
-for row in pe_table:
+for row in PV_pe_table:
     PV_se_pk = (row[0],row[1])
     if not PV_se_pk in intersection_se:
         cursor.execute("DELETE FROM phenotype_effect WHERE phenotype_id = '%s' and source_id =  '%s' " % PV_se_pk)
         n_del_se +=1
 
-for row in drug_pe_table: 
+for row in PV_drug_pe_table: 
     PV_dse_pk = (row[0], row[1], row[2])
     if not PV_dse_pk in intersection_drug_se:
         cursor.execute("DELETE FROM drug_phenotype_effect WHERE phenotype_id = '%s' and drug_id =  '%s' and phenotype_type = '%s'" % PV_dse_pk)

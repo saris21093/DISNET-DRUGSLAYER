@@ -11,18 +11,18 @@ import conection_DISNET_drugslayer
 from get_list import get_list
 cursor = conection_DISNET_drugslayer.cursor
       
-# Get primary keys (pk) from the tables drug table and target
-drug_table=get_list("select distinct drug_id from drug")
-drug_table=list(*zip(*drug_table))
+# Get primary keys (pk) from the parent tables (drug and target)
+parent_drug_table=get_list("select distinct drug_id from drug")
+parent_drug_table=list(*zip(*parent_drug_table))
 
-target_table=get_list("select distinct target_id from target")
-target_table=list(*zip(*target_table))
+parent_target_table=get_list("select distinct target_id from target")
+parent_target_table=list(*zip(*parent_target_table))
 
-# Get the drug_target table
-drug_target_table = get_list("select * from drug_target")
+# Get the Previous Version of drug_target table.
+PV_drug_target_table = get_list("select * from drug_target")
 
-# Get the primary keys (pk) of drug_target table
-drug_target_pk_table = get_list("select target_id, drug_id from drug_target")
+# Get the primary keys (pk) of drug_target table Previous Version.
+PV_PK_drug_target_table = get_list("select target_id, drug_id from drug_target")
 
 
 # Initialize auxiliaries
@@ -30,13 +30,13 @@ drug_target_pk_table = get_list("select target_id, drug_id from drug_target")
 # Count for keeping the quantity of data that are going to be inserted
 count=0
 
-# This List are going to keep the pk of the data that will be inserted
-target_list=[]
+# This List is going to keep tuples with the NEW complete data which will be inserted in the tables
+NEW_complete_target_list=[]
 
-# This List are going to keep tuples with the data which will be inserted in the tables
-new_drug_target=[]
+# This List is going to keep the NEW pk of the data that will be inserted
+NEW_drug_target=[]
 
-# This variable will keep the intersection between old data and new data
+# This List will keep the intersection between old data and new data
 intersection_drug_target = []
 
 # Counts for get the quantity of INSERT, UPDATE and DELETE
@@ -72,21 +72,21 @@ for i in drug_drug_target_chembl:
     # If all the data is the same it is repeat data
     # If the data is different is an update
 
-    if target_id in target_table:
-        if drug_id in drug_table:
+    if target_id in parent_target_table:
+        if drug_id in parent_drug_table:
             drug_target=(target_id,drug_id,source_id,action_type)
             drug_target_pk = (target_id, drug_id)
 
-            if not drug_target_pk in drug_target_pk_table:
-                if not drug_target_pk in new_drug_target:
-                    new_drug_target.append(drug_target_pk)
-                    target_list.append(drug_target)
+            if not drug_target_pk in PV_PK_drug_target_table:
+                if not drug_target_pk in NEW_drug_target:
+                    NEW_drug_target.append(drug_target_pk)
+                    NEW_complete_target_list.append(drug_target)
                     count+=1
                     n_ins_drug_target +=1
             else:
                 intersection_drug_target.append(drug_target_pk) # Add the pk that is in the previous and the actual version
                 n_same_drug_target +=1
-                for row in drug_target_table:
+                for row in PV_drug_target_table:
                     PV_drug_target_target_id = row[0]
                     PV_drug_target_drug_id = row[1]
                     PV_action_type = row[3]
@@ -97,16 +97,16 @@ for i in drug_drug_target_chembl:
                             n_upd_drug_target +=1
             # Insert the Data each 500 rows in each list
             if count==500:
-                cursor.executemany("insert into drug_target values(%s,%s,%s,%s)",target_list)
-                target_list=[]
+                cursor.executemany("insert into drug_target values(%s,%s,%s,%s)",NEW_complete_target_list)
+                NEW_complete_target_list=[]
                 count=0
             
 # Insert the remaining data in the list
-cursor.executemany("insert into drug_target values(%s,%s,%s,%s)",target_list)
+cursor.executemany("insert into drug_target values(%s,%s,%s,%s)",NEW_complete_target_list)
 
 # DELETE:
 # primary key that is in the previous version of the table and not in the new one -intersection list-
-for row in drug_target_table:
+for row in PV_drug_target_table:
     PV_drug_target_pk = (row[0],row[1])
     if not PV_drug_target_pk in intersection_drug_target:
         cursor.execute("DELETE FROM drug_target WHERE target_id = '%s' and drug_id =  '%s' " % PV_drug_target_pk)

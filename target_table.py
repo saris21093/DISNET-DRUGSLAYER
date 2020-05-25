@@ -11,19 +11,19 @@ import conection_DISNET_drugslayer
 from get_list import get_list
 cursor = conection_DISNET_drugslayer.cursor
 
-# Get target table    
-target_table = get_list("select * from target")
+# Get Previous Version of target table    
+PV_target_table = get_list("select * from target")
 
 # get column length
-column_length=len(target_table[0])
+column_length=len(PV_target_table[0])
 
-# Get the primary keys (pk) from target table
-target_pk_table = get_list("select target_id from target")
-target_pk_table=list(*zip(*target_pk_table))
+# Get the primary keys (pk) from Previous Version of target table
+PV_PK_target_table = get_list("select target_id from target")
+PV_PK_target_table=list(*zip(*PV_PK_target_table))
 
-# Get code table
-code_table=get_list("select code from code where resource_id = 86")
-code_table=list(*zip(*code_table))
+# Get the primary keys (pk) from Previous Version of code table
+PV_PK_code_table=get_list("select code from code where resource_id = 86")
+PV_PK_code_table=list(*zip(*PV_PK_code_table))
 
 # Get columns names
 columns_names = get_list("""SELECT COLUMN_NAME FROM information_schema.COLUMNS 
@@ -36,14 +36,14 @@ columns_names = get_list("""SELECT COLUMN_NAME FROM information_schema.COLUMNS
 count=0
 count_code=0
 
-# These Lists are going to keep the pk of the data that will be inserted
-target_list=[]
-code_list=[]
-has_code_list=[]
+# These Lists are going to keep tuples with the NEW complete data which will be inserted in the tables
+NEW_complete_target_list=[]
+NEW_complete_code_list=[]
+NEW_complete_has_code_list=[]
 
-# These Lists are going to keep tuples with the data which will be inserted in the tables
-new_code_list=[]
-new_target=[]
+# These Lists are going to keep the NEW pk of the data that will be inserted
+NEW_code_list=[]
+NEW_target=[]
 
 # These variables will keep the intersection between old data and new data
 intersection_target = []
@@ -102,16 +102,16 @@ for i in drug_target_chembl:
     # If the data is different is an update
     
     
-    if not target_id in target_pk_table:
-        if not target_id in new_target:
-            new_target.append(target_id)
-            target_list.append(target)
+    if not target_id in PV_PK_target_table:
+        if not target_id in NEW_target:
+            NEW_target.append(target_id)
+            NEW_complete_target_list.append(target)
             count+=1
             n_ins_target += 1
     else:
         intersection_target.append(target_id) # Add the pk that is in the previous and the actual version 
         n_same_target += 1
-        for row in target_table:
+        for row in PV_target_table:
             PV_target_id = row[0]
             if target_id == PV_target_id:
                 for column in range(1,column_length):
@@ -121,40 +121,40 @@ for i in drug_target_chembl:
                         n_upd_target += 1
     # Insert the Data each 500 rows in each list
     if count==500:
-        cursor.executemany("insert into target values(%s,%s,%s,%s,%s,%s)",target_list)
-        target_list=[]
+        cursor.executemany("insert into target values(%s,%s,%s,%s,%s,%s)",NEW_complete_target_list)
+        NEW_complete_target_list=[]
         count=0
 
     # Get the UniProt Code for the target
     # Insert it into the code and has_code tables
     if accession != None:
-        if not accession in code_table:
-            if not accession in new_code_list:
-                new_code_list.append(accession)
+        if not accession in PV_PK_code_table:
+            if not accession in NEW_code_list:
+                NEW_code_list.append(accession)
                 code_accession=(accession,UP_RESOURCEID,TARGET_ENTITYID)
                 has_code=(ID_RESOURCE_ID,target_id,accession,UP_RESOURCEID,TARGET_ENTITYID)
-                code_list.append(code_accession)
-                has_code_list.append(has_code)
+                NEW_complete_code_list.append(code_accession)
+                NEW_complete_has_code_list.append(has_code)
                 count_code+=1
                 n_ins_code += 1
        
         # Insert the Data each 500 rows in each list
         if count_code==500:
-            cursor.executemany("insert into code values(%s,%s,%s)",code_list)
-            cursor.executemany("insert into has_code values(%s,%s,%s,%s,%s)",has_code_list)
-            code_list=[]
-            has_code_list=[]
+            cursor.executemany("insert into code values(%s,%s,%s)",NEW_complete_code_list)
+            cursor.executemany("insert into has_code values(%s,%s,%s,%s,%s)",NEW_complete_has_code_list)
+            NEW_complete_code_list=[]
+            NEW_complete_has_code_list=[]
             count_code=0
 
 
 # Insert the remaining data in the lists
-cursor.executemany("insert into target values(%s,%s,%s,%s,%s,%s)",target_list)
-cursor.executemany("insert into code values(%s,%s,%s)",code_list)
-cursor.executemany("insert into has_code values(%s,%s,%s,%s,%s)",has_code_list)
+cursor.executemany("insert into target values(%s,%s,%s,%s,%s,%s)",NEW_complete_target_list)
+cursor.executemany("insert into code values(%s,%s,%s)",NEW_complete_code_list)
+cursor.executemany("insert into has_code values(%s,%s,%s,%s,%s)",NEW_complete_has_code_list)
 
 # DELETE:
 # primary key that is in the previous version of the table and not in the new one -intersection list-
-for PV_target_id in target_pk_table:
+for PV_target_id in PV_PK_target_table:
     if not PV_target_id in intersection_target:
         cursor.execute("DELETE FROM target WHERE target_id = '%s'" % PV_target_id)
         n_del_target += 1

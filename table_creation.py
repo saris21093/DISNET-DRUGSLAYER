@@ -298,7 +298,7 @@ TABLES['drug_disease']=(""" CREATE TABLE drug_disease (
     disease_id varchar(25),
     drug_id varchar (20),
     source_id int NOT NULL ,
-    disease_references float,
+    direct_evidence char(1) NOT NULL,
     primary key(disease_id,drug_id),
         CONSTRAINT fk_drugdisease_sourceid
         FOREIGN KEY(source_id)
@@ -321,22 +321,22 @@ TABLES['track_drug_disease']=("""CREATE TABLE track_drug_disease (
     disease_id VARCHAR(25),
     drug_id VARCHAR (20),
     snapshot_action char(1) NOT NULL,
-    disease_references float,
+    direct_evidence char(1) NOT NULL,
     source_id int(11) NOT NULL,
     PRIMARY KEY (snapshot_date,disease_id,drug_id,snapshot_action),
     KEY disease_id_idx (disease_id,drug_id))""")
 
 TABLES["drug_disease_BEFORE_INSERT"]=(""" CREATE TRIGGER drug_disease_BEFORE_INSERT BEFORE INSERT ON drug_disease FOR EACH ROW
-    INSERT INTO track_drug_disease (snapshot_date,disease_id,drug_id,snapshot_action,disease_references,source_id) 
-    VALUES (CURDATE(),NEW.disease_id,NEW.drug_id,"I",NEW.disease_references,NEW.source_id)""")
+    INSERT INTO track_drug_disease (snapshot_date,disease_id,drug_id,snapshot_action,direct_evidence,source_id) 
+    VALUES (CURDATE(),NEW.disease_id,NEW.drug_id,"I",NEW.direct_evidence,NEW.source_id)""")
 
 TABLES["drug_disease_BEFORE_UPDATE"]=(""" CREATE TRIGGER drug_disease_BEFORE_UPDATE BEFORE UPDATE ON drug_disease FOR EACH ROW
-    INSERT INTO track_drug_disease (snapshot_date,disease_id,drug_id,snapshot_action,disease_references,source_id) 
-    VALUES (CURDATE(),NEW.disease_id,NEW.drug_id,"U",NEW.disease_references,NEW.source_id)""")
+    INSERT INTO track_drug_disease (snapshot_date,disease_id,drug_id,snapshot_action,direct_evidence,source_id) 
+    VALUES (CURDATE(),NEW.disease_id,NEW.drug_id,"U",NEW.direct_evidence,NEW.source_id)""")
 
 TABLES["drug_disease_BEFORE_DELETE"]=(""" CREATE TRIGGER drug_disease_BEFORE_DELETE BEFORE DELETE ON drug_disease FOR EACH ROW
-    INSERT INTO track_drug_disease (snapshot_date,disease_id,drug_id,snapshot_action,disease_references,source_id) 
-    VALUES (CURDATE(),OLD.disease_id,OLD.drug_id,"D",OLD.disease_references,OLD.source_id)""")
+    INSERT INTO track_drug_disease (snapshot_date,disease_id,drug_id,snapshot_action,direct_evidence,source_id) 
+    VALUES (CURDATE(),OLD.disease_id,OLD.drug_id,"D",OLD.direct_evidence,OLD.source_id)""")
 
 TABLES['synonymous']=(""" CREATE TABLE synonymous (
     drug_id VARCHAR(20),
