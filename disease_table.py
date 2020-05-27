@@ -58,8 +58,8 @@ request_url(url_chemical,file_name_chemical)
 drugbank_chembl={}
 cross_references_list=get_list("SELECT * FROM has_code where entity_id = 2 and resource_id = 95 ")
 for i in cross_references_list:
-    chembl_code = i[0]
-    drugbank_code = i[1]
+    chembl_code = i[1]
+    drugbank_code = i[2]
     drugbank_chembl[drugbank_code]=chembl_code
 
 
@@ -120,7 +120,7 @@ SOURCE="CTD"
 source_id=int(get_list("SELECT source_id from source where name = '%s'" % SOURCE)[0][0])
 
 with gzip.open(file_name_chemical_diseases,'rb') as f2:
-    for line in itertools.islice(f2, 6799914, 7000270): # The data start at line 30
+    for line in itertools.islice(f2, 30, None): # The data start at line 30
         lines=(line.decode("UTF-8").strip().split('\t'))
         direct_evidence_scores = lines[5]
         chemical_id = lines[1]
@@ -134,85 +134,85 @@ with gzip.open(file_name_chemical_diseases,'rb') as f2:
             if direct_evidence_scores == "marker/mechanism":
                 direct_evidence='M'
         
-        if chemical_id in meshdrug_drugbank:
-            if (re.match(r'^MESH:\w+',disease_old_id)):
-                meshcodes=re.split('MESH:',disease_old_id)
-                disease_id=meshcodes[1]
-                reference_id= 75
-                
-            if (re.match(r'^OMIM:\w+',disease_old_id)):
-                omimcodes=re.split('OMIM:',disease_old_id)
-                disease_id=omimcodes[1]
-                reference_id= 72
-
-            # If the chemical_id(MeSH) has a DrugBank_id  is because is a drug
-            drugbank_id=meshdrug_drugbank[chemical_id]
-
-            # Check if the drug is in our database
-            if drugbank_id in drugbank_chembl:
-                drug_id=drugbank_chembl[drugbank_id]
-                disease=(reference_id, disease_id, source_id, disease_name)
-                drug_disease_pk = (disease_id, drug_id)
-                drug_disease=(disease_id, drug_id, source_id, direct_evidence)
-
-                # INSERT: primary key (pk) that is not in the previous version
-                # Sometimes there are repeat pk in the new data, 
-                # in order to avoid duplicate primary key of the tables,
-                # it keeps all the pk in a list.
-                # Other list keeps tuples with the data which will be inserted in the tables, 
-                # They will be inserted each 500 rows.
-                # This method is faster than handle the exception and insert data one per one. 
-                
-                # UPDATE: primary key is that is in the previous version of the table
-                # If all the data is the same it is repeat data
-                # If the data is different is an update
-                
-                if not disease_id in PV_PK_disease_table:
-                    if not disease_id in NEW_disease_list: 
-                        NEW_disease_list.append(disease_id) 
-                        NEW_complete_disease_list.append(disease) 
-                        n_ins_disease += 1
-                
-                else: 
-                    if not disease_id in intersection_disease:
-                        intersection_disease.append(disease_id) # Add the pk that is in the previous and the actual version
-                        n_same_disease +=1 
-                    for rows in PV_disease_table:
-                        PV_disease_id=rows[1]
-                        PV_disease_name = rows[3]
-                        if disease_id == PV_disease_id:
-                            if PV_disease_name != disease_name:
-                                disease_update_values = (disease_name, disease_id)
-                                cursor.execute("UPDATE disease SET disease_name = '%s' where disease_id = '%s'" % disease_update_values)
-                                n_upd_disease += 1
-                                
-                # Drug - Disease
-                if not drug_disease_pk in PV_PK_drug_disease_table: 
-                    if not  drug_disease_pk in NEW_drug_disease: 
-                        NEW_drug_disease.append(drug_disease_pk) 
-                        NEW_complete_drug_disease_list.append(drug_disease) 
-                        count+=1
-                        n_ins_drug_disease+=1
-                        
-
-                else:
-                    if not  drug_disease_pk in intersection_drug_disease:
-                        intersection_drug_disease.append(drug_disease_pk) # Add the pk that is in the previous and the actual version
-                        n_same_drug_disease += 1
-                    for rows in PV_drug_disease_table:
-                        if disease_id == rows[0] and drug_id == rows[1]:
-                            if direct_evidence != rows[3]:
-                                drug_disease_update_values = (direct_evidence, disease_id, drug_id)
-                                cursor.execute("UPDATE drug_disease SET direct_evidence = '%s' where disease_id = '%s' and drug_id = '%s' " % drug_disease_update_values)
-                                n_upd_drug_disease +=1
-                                
-                if count == 500:
-                    cursor.executemany("insert into disease values(%s,%s,%s,%s)",NEW_complete_disease_list)
-                    NEW_complete_disease_list=[]
-                    cursor.executemany("insert into drug_disease values(%s,%s,%s,%s)",NEW_complete_drug_disease_list)
-                    NEW_complete_drug_disease_list=[]
-                    count=0
+            if chemical_id in meshdrug_drugbank:
+                if (re.match(r'^MESH:\w+',disease_old_id)):
+                    meshcodes=re.split('MESH:',disease_old_id)
+                    disease_id=meshcodes[1]
+                    reference_id= 75
                     
+                if (re.match(r'^OMIM:\w+',disease_old_id)):
+                    omimcodes=re.split('OMIM:',disease_old_id)
+                    disease_id=omimcodes[1]
+                    reference_id= 72
+                
+                # If the chemical_id(MeSH) has a DrugBank_id  is because is a drug
+                drugbank_id=meshdrug_drugbank[chemical_id]
+                # Check if the drug is in our database
+                if drugbank_id in drugbank_chembl:
+                    drug_id=drugbank_chembl[drugbank_id]
+                    disease=(reference_id, disease_id, source_id, disease_name)
+                    drug_disease_pk = (disease_id, drug_id)
+                    drug_disease=(disease_id, drug_id, source_id, direct_evidence)
+
+                    # INSERT: primary key (pk) that is not in the previous version
+                    # Sometimes there are repeat pk in the new data, 
+                    # in order to avoid duplicate primary key of the tables,
+                    # it keeps all the pk in a list.
+                    # Other list keeps tuples with the data which will be inserted in the tables, 
+                    # They will be inserted each 500 rows.
+                    # This method is faster than handle the exception and insert data one per one. 
+                    
+                    # UPDATE: primary key is that is in the previous version of the table
+                    # If all the data is the same it is repeat data
+                    # If the data is different is an update
+                    
+                    if not disease_id in PV_PK_disease_table:
+                        
+                        if not disease_id in NEW_disease_list: 
+                            NEW_disease_list.append(disease_id) 
+                            NEW_complete_disease_list.append(disease) 
+                            n_ins_disease += 1
+                    
+                    else: 
+                        if not disease_id in intersection_disease:
+                            intersection_disease.append(disease_id) # Add the pk that is in the previous and the actual version
+                            n_same_disease +=1 
+                        for rows in PV_disease_table:
+                            PV_disease_id=rows[1]
+                            PV_disease_name = rows[3]
+                            if disease_id == PV_disease_id:
+                                if PV_disease_name != disease_name:
+                                    disease_update_values = (disease_name, disease_id)
+                                    cursor.execute("UPDATE disease SET disease_name = '%s' where disease_id = '%s'" % disease_update_values)
+                                    n_upd_disease += 1
+                                    
+                    # Drug - Disease
+                    if not drug_disease_pk in PV_PK_drug_disease_table: 
+                        if not  drug_disease_pk in NEW_drug_disease: 
+                            NEW_drug_disease.append(drug_disease_pk) 
+                            NEW_complete_drug_disease_list.append(drug_disease) 
+                            count+=1
+                            n_ins_drug_disease+=1
+                            
+
+                    else:
+                        if not  drug_disease_pk in intersection_drug_disease:
+                            intersection_drug_disease.append(drug_disease_pk) # Add the pk that is in the previous and the actual version
+                            n_same_drug_disease += 1
+                        for rows in PV_drug_disease_table:
+                            if disease_id == rows[0] and drug_id == rows[1]:
+                                if direct_evidence != rows[3]:
+                                    drug_disease_update_values = (direct_evidence, disease_id, drug_id)
+                                    cursor.execute("UPDATE drug_disease SET direct_evidence = '%s' where disease_id = '%s' and drug_id = '%s' " % drug_disease_update_values)
+                                    n_upd_drug_disease +=1
+                                    
+                    if count == 500:
+                        cursor.executemany("insert into disease values(%s,%s,%s,%s)",NEW_complete_disease_list)
+                        NEW_complete_disease_list=[]
+                        cursor.executemany("insert into drug_disease values(%s,%s,%s,%s)",NEW_complete_drug_disease_list)
+                        NEW_complete_drug_disease_list=[]
+                        count=0
+                        
 
 cursor.executemany("insert into disease values(%s,%s,%s,%s)",NEW_complete_disease_list)
 cursor.executemany("insert into drug_disease values(%s,%s,%s,%s)",NEW_complete_drug_disease_list)

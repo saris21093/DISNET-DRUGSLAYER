@@ -10,7 +10,10 @@ The data for code and has_code are got from UNICHEM python client to get the cro
 
 
 """
-
+import csv
+import itertools
+import zipfile
+import urllib.request
 import requests
 import conection_DISNET_drugslayer
 from get_list import get_list
@@ -26,6 +29,10 @@ column_length=len(PV_drug_table[0])
 # Get the primary keys (PK) from Previous Version of drug table 
 PV_PK_drug_table = get_list("select drug_id from drug")
 PV_PK_drug_table=list(*zip(*PV_PK_drug_table))
+
+# Get code from has_code table
+has_code_table = get_list("select code from has_code where resource_id = 95")
+has_code_table=list(*zip(*has_code_table))
 
 # Get Previous Version of ATC_code table
 PV_ATC_table = get_list("select * from ATC_code")
@@ -93,6 +100,15 @@ SOURCE = "CHEMBL"
 # Get the source_id of SOURCE from the table "source"
 source_id=int(get_list("SELECT source_id from source where name = '%s'" % SOURCE)[0][0])
 
+# Open DrugBank file
+myfile = requests.get('https://www.drugbank.ca/releases/5-1-6/downloads/approved-drug-links', auth=('sara.jaramillo.cardenas@alumnos.upm.es', 'Barcelona21093'))
+open('approved_drug_links.zip', 'wb').write(myfile.content)
+archive = zipfile.ZipFile('approved_drug_links.zip', 'r')
+names = archive.namelist()
+archive.extractall()
+
+
+
 
 # Get the info from chEMBL Python Client
 from chembl_webresource_client.new_client import new_client
@@ -152,7 +168,26 @@ for i in approved_drugs:
                 NEW_complete_code_list.append(code)
                 NEW_complete_has_code_list.append(has_code)
                 count_code+=1 
-                n_ins_code+=1  
+                n_ins_code+=1
+            else:
+                with open(names[0]) as csvfile2:
+                    csvreader2 = csv.reader(csvfile2, delimiter=",")
+                    for line in itertools.islice(csvreader2, 1, None):
+                        drugbank_id = line[0]
+                        name = line[1]
+                        for i in PV_drug_table:
+                            if name.upper() in i[1]:
+                                if not drugbank_id in has_code_table:
+                                    if not drugbank_id in NEW_code_list:
+                                        NEW_code_list.append(drugbank_id)
+                                        code = (drugbank_id,DB_RESOURCEID,DRUG_ENTITYID)
+                                        has_code = (ID_RESOURCE_ID,i[0],drugbank_id,DB_RESOURCEID,DRUG_ENTITYID)
+                                        NEW_complete_code_list.append(code)
+                                        NEW_complete_has_code_list.append(has_code)
+                                        n_ins_code +=1
+                                
+
+
 
     #  Get the atc code    
     if 'atc_classifications'in i:
@@ -241,6 +276,10 @@ for row in PV_synonymous_table: # Loop the pk of the synonymous's table
     if not PV_synonymous_pk in intersection_synonymous:
         cursor.execute("DELETE FROM synonymous WHERE drug_id = '%s' and source_id = '%s' and synonymous_name = '%s'" % PV_synonymous_pk)
         n_del_synonymous+=1
+
+
+
+
 
 
 print("Number of Inserted in the drug table: ", n_ins_drug, "\nNumber of Updates in the drug table: ", n_upd_drug, "\nNumber of Deletes in the drug table:  ",n_del_drug, "\nNumber of repeat PK in the drug table: ",n_same_drug)
