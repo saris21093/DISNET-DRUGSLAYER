@@ -87,7 +87,7 @@ for i in drug_target_chembl:
     else:
         accession=None
         
-    target=(target_id,source_id,preferred_name,target_type,organism,tax_id)
+    target=(target_id,preferred_name,target_type,organism,tax_id)
     
     # INSERT: primary key (pk) that is not in the previous version
     # Sometimes there are repeat pk in the new data, 
@@ -121,7 +121,7 @@ for i in drug_target_chembl:
                         n_upd_target += 1
     # Insert the Data each 500 rows in each list
     if count==500:
-        cursor.executemany("insert into target values(%s,%s,%s,%s,%s,%s)",NEW_complete_target_list)
+        cursor.executemany("insert into target values(%s,%s,%s,%s,%s)",NEW_complete_target_list)
         NEW_complete_target_list=[]
         count=0
 
@@ -148,7 +148,7 @@ for i in drug_target_chembl:
 
 
 # Insert the remaining data in the lists
-cursor.executemany("insert into target values(%s,%s,%s,%s,%s,%s)",NEW_complete_target_list)
+cursor.executemany("insert into target values(%s,%s,%s,%s,%s)",NEW_complete_target_list)
 cursor.executemany("insert into code values(%s,%s,%s)",NEW_complete_code_list)
 cursor.executemany("insert into has_code values(%s,%s,%s,%s,%s)",NEW_complete_has_code_list)
 

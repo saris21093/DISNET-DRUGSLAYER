@@ -22,12 +22,12 @@ PV_code_table=list(*zip(*PV_code_table))
 
 # Get the primary keys (pk) from drug_phenotype_effect table Previous Version
 # pe --> phenotype effect
-PV_PK_pe_table = get_list("select phenotype_id from phenotype_effect where source_id = 1")
+PV_PK_pe_table = get_list("select phenotype_id from phenotype_effect")
 PV_PK_pe_table=list(*zip(*PV_PK_pe_table))
 
 # Get the Previous Version from drug_phenotype_effect table 
 # pe --> phenotype effect
-PV_pe_table = get_list("select * from phenotype_effect where source_id = 1")
+PV_pe_table = get_list("select * from phenotype_effect")
 
 
 # Cross reference dictionary
@@ -120,7 +120,7 @@ for i in indications:
                
     if mesh_umls_dic[indication_mesh] in mesh_umls_dic.values():
         indication_umls=mesh_umls_dic[indication_mesh]
-        indication=(indication_umls,source_id,indication_name)
+        indication=(indication_umls,indication_name)
         if not indication_umls in PV_PK_pe_table:
             if not indication_umls in NEW_indication_list:
                 NEW_indication_list.append(indication_umls)
@@ -128,27 +128,18 @@ for i in indications:
                 count+=1
                 n_ins_indication +=1
         else:
-            if not indication_umls in intersection_indication:
-                intersection_indication.append(indication_umls) # Add the pk that is in the previous and the actual version
-            for rows in PV_pe_table:
-                PV_indication_id = rows[0]
-                PV_indication_sourceid = rows[1]
-                PV_indication_name = rows[2]
-                if indication_umls == PV_indication_id :                   
-                    if PV_indication_name != indication_name:
-                        indication_update_values = (indication_name,indication_umls,source_id )
-                        cursor.execute("UPDATE phenotype_effect SET phenotype_name = '%s' where phenotype_id = '%s' and source_id = '%s'" % indication_update_values)
-                        n_upd_indication +=1
+            n_same_indication
+          
                             
 
         # Insert the Data each 50 rows in each list
         if count == 50:
-            cursor.executemany("insert into phenotype_effect values(%s,%s,%s)",NEW_complete_indication_list)
+            cursor.executemany("insert into phenotype_effect values(%s,%s)",NEW_complete_indication_list)
             NEW_complete_indication_list = []
             count=0
                 
 # Insert the remaining data in the lists
-cursor.executemany("insert into phenotype_effect values(%s,%s,%s)",NEW_complete_indication_list) 
+cursor.executemany("insert into phenotype_effect values(%s,%s)",NEW_complete_indication_list) 
 # Insert the UMLS code          
 cursor.executemany("insert into code values(%s,%s,%s)",NEW_complete_code_list)
 cursor.executemany("insert into has_code values(%s,%s,%s,%s,%s)",NEW_complete_has_code_list)
@@ -156,11 +147,7 @@ n_ins_code = len(NEW_complete_code_list)
 
 # DELETE
 # primary key that is in the previous version of the table and not in the new one -intersection list-
-n_same_indication = len(intersection_indication)
-for PV_indication_id in PV_PK_pe_table:
-    if not PV_indication_id in intersection_indication:
-        cursor.execute("DELETE FROM phenotype_effect WHERE phenotype_id = '%s' and source_id =  1 " % PV_indication_id)
-        n_del_indication +=1
 
-print("Number of Inserted in the phenotype_effect table where is an indication: ", n_ins_indication, "\nNumber of Updates in the phenotype_effect table where is an indication: ", n_upd_indication, "\nNumber of Deletes in the phenotype_effect table where is an indication:  ",n_del_indication, "\nNumber of repeat PK in the phenotype_effect table where is an indication: ",n_same_indication)
+
+print("Number of Inserted in the phenotype_effect table where is an indication: ", n_ins_indication, "\nNumber of repeat PK in the phenotype_effect table where is an indication: ",n_same_indication)
 print("Number of Inserted in the code table: ", n_ins_code)

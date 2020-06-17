@@ -33,7 +33,7 @@ parent_drug_table=get_list("select distinct drug_id from drug")
 parent_drug_table=list(*zip(*parent_drug_table))
 
 # Get the primary keys (pk) from drug_phenotype_effect table Previous Version
-PV_PK_drug_pe_table = get_list("select phenotype_id, drug_id, source_id from drug_phenotype_effect where source_id = 1")
+PV_PK_drug_pe_table = get_list("select phenotype_id, drug_id, source_id from drug_phenotype_effect where phenotype_type = 'INDICATION'")
 
 # Get the Previous Version of drug_phenotype_effect table
 PV_drug_pe_table = get_list("select * from drug_phenotype_effect where phenotype_type = 'INDICATION'")
